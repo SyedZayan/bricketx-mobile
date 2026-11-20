@@ -1,0 +1,21 @@
+export const colors = {
+  primary: '#C39967',
+  primaryHover: '#B08856',
+  primaryMuted: 'rgba(195, 153, 103, 0.12)',
+  primaryTint: '#FAF5EE',
+  primaryBorder: '#DFC7A7',
+  slate: '#A5ADB6',
+  slateLight: '#F3F4F6',
+  border: '#E5E7EB',
+  surface: '#FFFFFF',
+  background: '#FAF9F6',
+  text: '#212121',
+  textMuted: '#6B7280',
+  // Unified semantic tokens harmonized with BricketX palette
+  error: '#212121',
+  errorBg: '#F3F4F6',
+  success: '#C39967',
+  successBg: '#FAF5EE',
+  warning: '#8C6A3E',
+  warningBg: '#FAF5EE',
+} as const;

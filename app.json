@@ -1,25 +1,53 @@
 {
   "expo": {
-    "name": "bricketx-mobile",
+    "name": "BricketX",
     "slug": "bricketx-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAF9F6"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.bricketx.investor"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#FAF9F6"
       },
-      "predictiveBackGestureEnabled": false
+      "androidNavigationBar": {
+        "visible": "always",
+        "barStyle": "dark-content",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.bricketx.investor"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow BricketX to access your camera to capture verification and KYC identity documents."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow BricketX to access your photos to upload identity and source of funds documents."
+        }
+      ],
+      [
+        "expo-document-picker",
+        {}
+      ],
+      "expo-image",
+      "expo-sharing",
+      "expo-status-bar"
+    ]
   }
 }
