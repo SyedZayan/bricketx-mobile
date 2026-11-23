@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,8 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { getStatusMeta } from './detail/investmentTypes';
 import { AppHeader } from '../../components/common/AppHeader';
+import { ErrorStateView } from '../../components/common/ErrorStateView';
+import { normalizeError } from '../../utils/errorHandler';
 import { PoolMarker } from '../../components/invest/PoolMarker';
 
 type InvestmentItem = GetInvestmentsApiResponse['investments'][number];
@@ -304,6 +306,31 @@ export const InvestmentsScreen = () => {
     refetch();
   }, [refetch]);
 
+  const normalizedError = useMemo(() => {
+    if (!error) return null;
+    return normalizeError(error, {
+      defaultMessage: 'We could not load your portfolio positions right now.',
+      defaultNextStep:
+        'Check your internet connection and tap Retry to reload your investments.',
+    });
+  }, [error]);
+
+  const handleErrorAction = useCallback(() => {
+    if (!normalizedError) {
+      handleRefresh();
+      return;
+    }
+    if (normalizedError.actionType === 'kyc') {
+      navigation.navigate('KycModal');
+      return;
+    }
+    if (normalizedError.actionType === 'support') {
+      navigation.navigate('Support' as any);
+      return;
+    }
+    handleRefresh();
+  }, [normalizedError, handleRefresh, navigation]);
+
   const summary = useMemo(() => {
     let activeCapital = 0;
     let inFlightCapital = 0;
@@ -525,22 +552,12 @@ export const InvestmentsScreen = () => {
           <Text style={styles.loadingText}>Streaming position ledger...</Text>
         </View>
       ) : error ? (
-        <View style={styles.centerBox}>
-          <View style={styles.errorIconCircle}>
-            <Ionicons name="cloud-offline-outline" size={30} color={colors.error} />
-          </View>
-          <Text style={styles.errorTitle}>Connection Interrupted</Text>
-          <Text style={styles.errorSub}>
-            Unable to load your investments right now.
-          </Text>
-          <TouchableOpacity
-            style={styles.retryBtn}
-            onPress={handleRefresh}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.retryText}>Retry Connection</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorStateView
+          error={error}
+          appError={normalizedError || undefined}
+          onAction={handleErrorAction}
+          loading={isFetching}
+        />
       ) : filteredInvestments.length === 0 ? (
         <View style={styles.centerBox}>
           <View style={styles.emptyIconCircle}>

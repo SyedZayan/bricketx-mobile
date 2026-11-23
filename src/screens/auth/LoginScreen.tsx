@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,8 @@ import { isValidEmail } from '../../utils/passwordRules';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setAuthenticatedUser, setMfaPending } from '../../store/authSlice';
 import { TextField } from '../../components/ui/TextField';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { Button } from '../../components/ui/Button';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -78,6 +80,7 @@ export const LoginScreen: React.FC<Props> = ({ route, navigation }) => {
     route.params?.notice ?? null
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<unknown>(null);
   const [tooManyAttempts, setTooManyAttempts] = useState(false);
 
   const [canUseBiometrics, setCanUseBiometrics] = useState(false);
@@ -165,7 +168,16 @@ export const LoginScreen: React.FC<Props> = ({ route, navigation }) => {
 
     if (refreshToken) {
       const isBioEnabled = await BiometricsService.isEnabled();
-      await BiometricsService.setEnabled(isBioEnabled, me.email, refreshToken);
+      const savedBioEmail = await BiometricsService.getSavedEmail();
+      const nextEmail = (me.email || '').trim().toLowerCase();
+      const isSameAccount = !savedBioEmail || savedBioEmail.trim().toLowerCase() === nextEmail;
+
+      if (isBioEnabled && !isSameAccount) {
+        await BiometricsService.setEnabled(false);
+        setCanUseBiometrics(false);
+      } else {
+        await BiometricsService.setEnabled(isBioEnabled, me.email, refreshToken);
+      }
     }
 
     dispatch(
@@ -182,6 +194,7 @@ export const LoginScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleBiometricAuth = async () => {
     setErrorMessage(null);
+    setRawError(null);
     setNoticeBanner(null);
     setIsBioAuthenticating(true);
 
@@ -199,11 +212,14 @@ export const LoginScreen: React.FC<Props> = ({ route, navigation }) => {
         return;
       }
 
-      const success = await BiometricsService.authenticate(
+      const authResult = await BiometricsService.authenticate(
         `Authenticate with ${biometricName} to access BricketX`
       );
 
-      if (!success) {
+      if (!authResult.success) {
+        if (!authResult.cancelled && authResult.message) {
+          setErrorMessage(authResult.message);
+        }
         setIsBioAuthenticating(false);
         return;
       }
@@ -221,10 +237,17 @@ export const LoginScreen: React.FC<Props> = ({ route, navigation }) => {
         throw new Error('Malformed token response from server.');
       }
     } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        await BiometricsService.clearCredentials();
+        setCanUseBiometrics(false);
+      }
+      setRawError(err);
       setErrorMessage(
-        err?.data?.error?.message ||
-          err?.data?.message ||
-          'Biometric authentication failed. Please enter your password.'
+        err?.status === 401 || err?.status === 403
+          ? 'Your saved biometric session expired. Please sign in with your password to re-link biometrics.'
+          : err?.data?.error?.message ||
+            err?.data?.message ||
+            'Biometric authentication failed. Please enter your password.'
       );
     } finally {
       setIsBioAuthenticating(false);
@@ -233,6 +256,7 @@ export const LoginScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleLogin = async () => {
     setErrorMessage(null);
+    setRawError(null);
     setNoticeBanner(null);
     setTooManyAttempts(false);
 
@@ -278,6 +302,7 @@ export const LoginScreen: React.FC<Props> = ({ route, navigation }) => {
         );
       }
     } catch (err: any) {
+      setRawError(err);
       if (err?.status === 401) {
         setErrorMessage('Invalid email or password.');
       } else if (err?.status === 403) {
@@ -346,27 +371,20 @@ export const LoginScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.noticeBannerText}>{noticeBanner}</Text>
           </View>
         )}
-
         {!!errorMessage && (
-          <View style={styles.errorBanner}>
-            <Ionicons
-              name="alert-circle"
-              size={17}
-              color={colors.error}
-              style={{ marginTop: 1 }}
-            />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.errorBannerText}>{errorMessage}</Text>
-              {tooManyAttempts && (
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('ForgotPassword', { email })}
-                  style={{ marginTop: 4 }}
-                >
-                  <Text style={styles.errorResetLink}>Reset your password →</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
+          <InlineErrorBanner
+            error={rawError}
+            appError={{
+              ...normalizeError(rawError, { defaultMessage: errorMessage }),
+              message: errorMessage,
+              nextStep: tooManyAttempts
+                ? 'Reset your password to unlock sign-in, or wait a moment and try again.'
+                : normalizeError(rawError, { defaultMessage: errorMessage }).nextStep,
+            }}
+            actionLabel={tooManyAttempts ? 'Reset your password' : undefined}
+            onAction={tooManyAttempts ? () => navigation.navigate('ForgotPassword', { email }) : undefined}
+            onDismiss={() => { setErrorMessage(null); setRawError(null); }}
+          />
         )}
 
         {/* Form Fields */}

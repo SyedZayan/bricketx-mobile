@@ -1,4 +1,4 @@
-ï»¿import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -31,6 +31,8 @@ import {
 } from '../../features/documents/documentHelpers';
 import { useMobileDocumentDownload } from '../../features/documents/useMobileDocumentDownload';
 import { AppHeader } from '../../components/common/AppHeader';
+import { ErrorStateView } from '../../components/common/ErrorStateView';
+import { normalizeError } from '../../utils/errorHandler';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -119,7 +121,7 @@ export const DocumentsScreen: React.FC<Props> = ({ navigation, route }) => {
   const target = targetKind && targetId ? { kind: targetKind, id: targetId } : null;
   const targetKey = target ? `${target.kind}:${target.id}` : null;
 
-  const { data, isLoading, isFetching, isError, refetch } = useGetDocumentsQuery(undefined, {
+  const { data, isLoading, isFetching, isError, error, refetch } = useGetDocumentsQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });
   const investmentsQuery = useGetInvestmentsQuery();
@@ -177,7 +179,7 @@ export const DocumentsScreen: React.FC<Props> = ({ navigation, route }) => {
       const name = packageById.get(doc.investmentId);
       opts.push({
         value: doc.investmentId,
-        label: name ? `${name} Â· Ref ${doc.internalRef}` : `Ref ${doc.internalRef}`,
+        label: name ? `${name} · Ref ${doc.internalRef}` : `Ref ${doc.internalRef}`,
       });
     }
     return opts;
@@ -309,17 +311,19 @@ export const DocumentsScreen: React.FC<Props> = ({ navigation, route }) => {
         {isLoading ? (
           <View style={styles.centerBox}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading your documentsâ€¦</Text>
+            <Text style={styles.loadingText}>Loading your documents…</Text>
           </View>
         ) : isError ? (
-          <View style={styles.emptyCard}>
-            <Ionicons name="alert-circle-outline" size={30} color={colors.text} />
-            <Text style={styles.emptyTitle}>Couldn&apos;t load your documents</Text>
-            <Text style={styles.emptySub}>Please check your connection and try again.</Text>
-            <TouchableOpacity style={styles.primaryBtn} onPress={() => refetch()}>
-              <Text style={styles.primaryBtnText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
+          <ErrorStateView
+            error={error}
+            appError={normalizeError(error, {
+              defaultMessage: "We couldn't load your investor documents right now.",
+              defaultNextStep: 'Check your internet connection and tap Retry.',
+            })}
+            onAction={() => refetch()}
+            loading={isFetching}
+            compact
+          />
         ) : documents.length === 0 ? (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIconCircle}>
@@ -512,7 +516,7 @@ export const DocumentsScreen: React.FC<Props> = ({ navigation, route }) => {
                                     />
                                   )}
                                   <Text style={styles.downloadBtnText}>
-                                    {isPrimaryBusy ? 'Openingâ€¦' : 'Download'}
+                                    {isPrimaryBusy ? 'Opening…' : 'Download'}
                                   </Text>
                                 </TouchableOpacity>
                               </View>

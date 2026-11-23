@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import {
   PostInvestmentsApiArg,
 } from '../../../api/generated/investorApi';
 import { colors } from '../../../theme/colors';
+import { normalizeError } from '../../../utils/errorHandler';
 import { spacing } from '../../../theme/spacing';
 import {
   StatusFeedbackModal,
@@ -474,7 +475,7 @@ export const CommitmentModal: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.targetMin}>
             {step === 1
               ? `Standard Ticket: $${formatWhole(minPackageAmount)} USD`
-              : `Committing $${formatWhole(amount)} USD · ${
+              : `Committing $${formatWhole(amount)} USD � ${
                   selectedCadence === 'quarterly'
                     ? 'Quarterly'
                     : selectedCadence === 'half_yearly'

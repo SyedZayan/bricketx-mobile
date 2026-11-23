@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,8 @@ import {
 } from '../../features/kyc/kycUtils';
 import { TextField } from '../../components/ui/TextField';
 import { Button } from '../../components/ui/Button';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -47,6 +49,7 @@ export const SourceOfFundsScreen: React.FC<Props> = ({ navigation }) => {
     existingSource?.explanation || ''
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<unknown>(null);
 
   useEffect(() => {
     if (!existingSource) return;
@@ -59,6 +62,7 @@ export const SourceOfFundsScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleContinue = async () => {
     setErrorMessage(null);
+    setRawError(null);
 
     if (annualIncome.trim() && !isValidAmount(annualIncome)) {
       setErrorMessage(
@@ -90,6 +94,7 @@ export const SourceOfFundsScreen: React.FC<Props> = ({ navigation }) => {
 
       navigation.navigate('ReviewSubmit');
     } catch (err: any) {
+      setRawError(err);
       setErrorMessage(
         getKycErrorMessage(err, 'Failed to save source of funds declaration.')
       );
@@ -114,9 +119,17 @@ export const SourceOfFundsScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.formCard}>
         {!!errorMessage && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
+          <InlineErrorBanner
+            error={rawError}
+            appError={{
+              ...normalizeError(rawError, { defaultMessage: errorMessage }),
+              message: errorMessage,
+            }}
+            onDismiss={() => {
+              setErrorMessage(null);
+              setRawError(null);
+            }}
+          />
         )}
 
         <Text style={styles.sectionLabel}>Primary Source of Invested Capital *</Text>

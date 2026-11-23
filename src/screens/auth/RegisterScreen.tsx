@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,8 @@ import {
   normalizeReferralCode,
 } from '../../utils/passwordRules';
 import { TextField } from '../../components/ui/TextField';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { Button } from '../../components/ui/Button';
 import { PasswordRules } from '../../components/auth/PasswordRules';
 import {
@@ -52,6 +54,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [rawFormError, setRawFormError] = useState<unknown>(null);
 
   const [register, { isLoading }] = usePostAuthRegisterMutation();
 
@@ -99,6 +102,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleRegister = async () => {
     setFormError(null);
+    setRawFormError(null);
     if (!validateForm()) return;
 
     const fullPhone = buildFullE164Phone();
@@ -120,6 +124,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         message: response.message,
       });
     } catch (err: any) {
+      setRawFormError(err);
       const errorCode = err?.data?.error?.code;
       const details = err?.data?.error?.details;
 
@@ -209,12 +214,18 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.modeTabTextActive}>Create Account</Text>
           </View>
         </View>
-
         {!!formError && (
-          <View style={styles.errorBanner}>
-            <Ionicons name="alert-circle" size={17} color={colors.error} />
-            <Text style={styles.errorBannerText}>{formError}</Text>
-          </View>
+          <InlineErrorBanner
+            error={rawFormError}
+            appError={{
+              ...normalizeError(rawFormError, { defaultMessage: formError }),
+              message: formError,
+            }}
+            onDismiss={() => {
+              setFormError(null);
+              setRawFormError(null);
+            }}
+          />
         )}
 
         {/* Full Name */}

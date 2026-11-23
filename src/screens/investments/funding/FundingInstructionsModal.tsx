@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,8 @@ import {
   FeedbackVariant,
 } from '../../../components/common/StatusFeedbackModal';
 import { colors } from '../../../theme/colors';
+import { ErrorStateView } from '../../../components/common/ErrorStateView';
+import { normalizeError } from '../../../utils/errorHandler';
 import { tokenMemory } from '../../../api/tokenMemory';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FundingInstructionsModal'>;
@@ -306,15 +308,15 @@ export const FundingInstructionsModal: React.FC<Props> = ({ route, navigation })
           <Text style={styles.loadingText}>Loading payment instructions...</Text>
         </View>
       ) : error || !bank ? (
-        <View style={styles.centerBox}>
-          <View style={styles.errorIconCircle}>
-            <Ionicons name="alert-circle-outline" size={38} color={colors.text} />
-          </View>
-          <Text style={styles.errorTitle}>Instructions Unavailable</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()} activeOpacity={0.85}>
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorStateView
+          error={error}
+          appError={normalizeError(error, {
+            defaultMessage: 'We could not load wire and payment instructions right now.',
+            defaultNextStep: 'Check your connection and tap Retry, or close and reopen from Portfolio.',
+          })}
+          onAction={() => refetch()}
+          compact
+        />
       ) : (
         <ScrollView
           style={styles.scroll}
@@ -634,7 +636,7 @@ export const FundingInstructionsModal: React.FC<Props> = ({ route, navigation })
                 </View>
                 <View style={styles.flexText}>
                   <Text style={styles.transferStepKicker} numberOfLines={1}>
-                    FINAL STEP • CONFIRM TRANSFER
+                    FINAL STEP � CONFIRM TRANSFER
                   </Text>
                   <Text style={styles.transferSentTitle} numberOfLines={2}>
                     Have You Sent the Wire?

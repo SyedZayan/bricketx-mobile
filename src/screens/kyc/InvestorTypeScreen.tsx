@@ -16,6 +16,8 @@ import {
   useGetKycMeQuery,
 } from '../../api/generated/investorApi';
 import { Button } from '../../components/ui/Button';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -34,9 +36,11 @@ export const InvestorTypeScreen: React.FC<Props> = ({ navigation }) => {
     profile?.actingOnBehalf || false
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<unknown>(null);
 
   const handleContinue = async () => {
     setErrorMessage(null);
+    setRawError(null);
 
     try {
       const payload = {
@@ -55,6 +59,7 @@ export const InvestorTypeScreen: React.FC<Props> = ({ navigation }) => {
         navigation.navigate('CompanyKyb');
       }
     } catch (err: any) {
+      setRawError(err);
       console.log('Error submitting investor-type:', JSON.stringify(err, null, 2));
       setErrorMessage(
         err?.data?.error?.message ||
@@ -81,9 +86,17 @@ export const InvestorTypeScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.formCard}>
         {!!errorMessage && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
+          <InlineErrorBanner
+            error={rawError}
+            appError={{
+              ...normalizeError(rawError, { defaultMessage: errorMessage }),
+              message: errorMessage,
+            }}
+            onDismiss={() => {
+              setErrorMessage(null);
+              setRawError(null);
+            }}
+          />
         )}
 
         {/* Individual Option Card */}

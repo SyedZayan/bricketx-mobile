@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,8 @@ import {
 import { isValidEmail, validatePassword } from '../../utils/passwordRules';
 import { OtpInput } from '../../components/ui/OtpInput';
 import { TextField } from '../../components/ui/TextField';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { PasswordRules } from '../../components/auth/PasswordRules';
 import { Button } from '../../components/ui/Button';
 import { colors } from '../../theme/colors';
@@ -38,6 +40,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [rawFormError, setRawFormError] = useState<unknown>(null);
   const [resendNotice, setResendNotice] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(initialEmail ? RESEND_COOLDOWN_SECONDS : 0);
 
@@ -72,6 +75,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleReset = async () => {
     setFormError(null);
+    setRawFormError(null);
     setResendNotice(null);
     if (!validate()) return;
 
@@ -99,6 +103,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ route, navigation }) => {
         ],
       });
     } catch (err: any) {
+      setRawFormError(err);
       if (err?.status === 429) {
         setFormError(
           `${
@@ -116,6 +121,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleResend = async () => {
     if (cooldown > 0) return;
     setFormError(null);
+    setRawFormError(null);
     setResendNotice(null);
 
     const trimmedEmail = email.trim().toLowerCase();
@@ -127,6 +133,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       await resendCode({ body: { email: trimmedEmail } }).unwrap();
     } catch (err: any) {
+      setRawFormError(err);
       if (err?.status === 429) {
         setFormError(
           err?.data?.error?.message || 'Please wait before requesting another code.'
@@ -176,12 +183,12 @@ export const ResetPasswordScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.emailHighlight}>{initialEmail || 'your email'}</Text> along with your new password.
           </Text>
         </View>
-
         {!!formError && (
-          <View style={styles.errorBanner}>
-            <Ionicons name="alert-circle" size={17} color={colors.error} />
-            <Text style={styles.errorBannerText}>{formError}</Text>
-          </View>
+          <InlineErrorBanner
+            error={rawFormError}
+            appError={{ ...normalizeError(rawFormError, { defaultMessage: formError }), message: formError }}
+            onDismiss={() => { setFormError(null); setRawFormError(null); }}
+          />
         )}
 
         {!!resendNotice && (
@@ -270,7 +277,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ route, navigation }) => {
               {cooldown > 0
                 ? `Resend in ${cooldown}s`
                 : isResending
-                ? 'Sending…'
+                ? 'Sending�'
                 : 'Resend code'}
             </Text>
           </TouchableOpacity>

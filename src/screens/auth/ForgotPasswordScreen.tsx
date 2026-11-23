@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,8 @@ import { AuthStackParamList } from '../../navigation/types';
 import { usePostAuthForgotPasswordMutation } from '../../api/generated/investorApi';
 import { isValidEmail } from '../../utils/passwordRules';
 import { TextField } from '../../components/ui/TextField';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { Button } from '../../components/ui/Button';
 import { colors } from '../../theme/colors';
 
@@ -27,11 +29,13 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ route, navigation }) => 
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState(route.params?.email?.trim() ?? '');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<unknown>(null);
 
   const [forgotPassword, { isLoading }] = usePostAuthForgotPasswordMutation();
 
   const handleSendCode = async () => {
     setErrorMessage(null);
+    setRawError(null);
     const trimmed = email.trim().toLowerCase();
 
     if (!isValidEmail(trimmed)) {
@@ -44,6 +48,7 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ route, navigation }) => 
         body: { email: trimmed },
       }).unwrap();
     } catch (err: any) {
+      setRawError(err);
       if (err?.status === 429) {
         setErrorMessage(
           err?.data?.error?.message ||
@@ -94,12 +99,12 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ route, navigation }) => 
             Enter your email address and we&apos;ll send a 6-digit verification code to reset your password.
           </Text>
         </View>
-
         {!!errorMessage && (
-          <View style={styles.errorBanner}>
-            <Ionicons name="alert-circle" size={17} color={colors.error} />
-            <Text style={styles.errorBannerText}>{errorMessage}</Text>
-          </View>
+          <InlineErrorBanner
+            error={rawError}
+            appError={{ ...normalizeError(rawError, { defaultMessage: errorMessage }), message: errorMessage }}
+            onDismiss={() => { setErrorMessage(null); setRawError(null); }}
+          />
         )}
 
         <TextField
@@ -109,6 +114,7 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ route, navigation }) => 
           onChangeText={(val) => {
             setEmail(val);
             if (errorMessage) setErrorMessage(null);
+    setRawError(null);
           }}
           keyboardType="email-address"
           autoComplete="email"

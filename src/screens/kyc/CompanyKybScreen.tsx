@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,8 @@ import {
 import { TextField } from '../../components/ui/TextField';
 import { CountryPickerField } from '../../components/ui/CountryPickerModal';
 import { Button } from '../../components/ui/Button';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -132,6 +134,7 @@ export const CompanyKybScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<unknown>(null);
 
   useEffect(() => {
     if (!company) return;
@@ -181,6 +184,7 @@ export const CompanyKybScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleContinue = async () => {
     setErrorMessage(null);
+    setRawError(null);
 
     if (!companyName.trim()) {
       setErrorMessage('Registered company name is required.');
@@ -329,6 +333,7 @@ export const CompanyKybScreen: React.FC<Props> = ({ navigation }) => {
 
       navigation.navigate('IdentityDocs');
     } catch (err: any) {
+      setRawError(err);
       setErrorMessage(
         getKycErrorMessage(err, 'Failed to save company information.')
       );
@@ -350,12 +355,19 @@ export const CompanyKybScreen: React.FC<Props> = ({ navigation }) => {
           Enter corporate registration details, directors, and ultimate beneficial owners.
         </Text>
       </View>
-
-      {!!errorMessage && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        </View>
-      )}
+        {!!errorMessage && (
+          <InlineErrorBanner
+            error={rawError}
+            appError={{
+              ...normalizeError(rawError, { defaultMessage: errorMessage }),
+              message: errorMessage,
+            }}
+            onDismiss={() => {
+              setErrorMessage(null);
+              setRawError(null);
+            }}
+          />
+        )}
 
       {/* Company Information */}
       <View style={styles.formCard}>

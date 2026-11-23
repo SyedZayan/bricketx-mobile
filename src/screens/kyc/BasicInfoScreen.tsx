@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,8 @@ import {
 import { TextField } from '../../components/ui/TextField';
 import { CountryPickerField } from '../../components/ui/CountryPickerModal';
 import { Button } from '../../components/ui/Button';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -68,6 +70,7 @@ export const BasicInfoScreen: React.FC<Props> = ({ navigation }) => {
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<unknown>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -128,6 +131,7 @@ export const BasicInfoScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleContinue = async () => {
     setErrorMessage(null);
+    setRawError(null);
     if (!validate()) return;
 
     try {
@@ -148,6 +152,7 @@ export const BasicInfoScreen: React.FC<Props> = ({ navigation }) => {
 
       navigation.navigate('InvestorType');
     } catch (err: any) {
+      setRawError(err);
       if (err?.data?.error?.code === 'NAME_NOT_LATIN') {
         setFieldErrors((prev) => ({ ...prev, fullLegalName: LATIN_NAME_MESSAGE }));
         return;
@@ -177,9 +182,17 @@ export const BasicInfoScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.formCard}>
         {!!errorMessage && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
+          <InlineErrorBanner
+            error={rawError}
+            appError={{
+              ...normalizeError(rawError, { defaultMessage: errorMessage }),
+              message: errorMessage,
+            }}
+            onDismiss={() => {
+              setErrorMessage(null);
+              setRawError(null);
+            }}
+          />
         )}
 
         <TextField

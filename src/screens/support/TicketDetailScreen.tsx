@@ -1,4 +1,4 @@
-ï»¿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -30,6 +30,9 @@ import {
 } from '../../components/common/StatusFeedbackModal';
 import { colors } from '../../theme/colors';
 import { AttachmentPicker } from './AttachmentPicker';
+import { ErrorStateView } from '../../components/common/ErrorStateView';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import {
   MESSAGE_MAX,
   formatDateTime,
@@ -63,6 +66,7 @@ export const TicketDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const attachments = useTicketAttachments();
   const [replyText, setReplyText] = useState('');
   const [replyError, setReplyError] = useState<string | null>(null);
+  const [rawReplyError, setRawReplyError] = useState<unknown>(null);
   const [downloadingAttId, setDownloadingAttId] = useState<string | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
@@ -121,12 +125,13 @@ export const TicketDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           message: `Saved to ${dl.uri}`,
         });
       }
-    } catch {
+    } catch (err: any) {
+      const norm = normalizeError(err, { defaultMessage: "We couldn't download this attachment. Please try again." });
       setFeedback({
         visible: true,
         variant: 'error',
-        title: 'Unable to Open File',
-        message: "We couldn't download this attachment. Please try again.",
+        title: norm.title,
+        message: `${norm.message} Next step: ${norm.nextStep}`,
       });
     } finally {
       setDownloadingAttId(null);
@@ -135,6 +140,7 @@ export const TicketDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleSendReply = async () => {
     setReplyError(null);
+    setRawReplyError(null);
     const trimmed = replyText.trim();
     if (!trimmed) {
       setReplyError('Write your reply first.');
@@ -162,6 +168,7 @@ export const TicketDetailScreen: React.FC<Props> = ({ navigation, route }) => {
       attachments.clear();
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
     } catch (err: any) {
+      setRawReplyError(err);
       setReplyError(
         err?.data?.message || "We couldn't send your reply. Please try again."
       );
@@ -348,9 +355,9 @@ export const TicketDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 
               <Text style={styles.metaLine}>
                 {issueTypeLabel(ticket.issueType)}
-                {ticket.investment ? ` â€¢ Investment ${ticket.investment.internalRef}` : ''}
-                {ticket.package ? ` â€¢ ${ticket.package.name}` : ''}
-                {` â€¢ Opened ${formatDateTime(ticket.createdAt)}`}
+                {ticket.investment ? ` • Investment ${ticket.investment.internalRef}` : ''}
+                {ticket.package ? ` • ${ticket.package.name}` : ''}
+                {` • Opened ${formatDateTime(ticket.createdAt)}`}
               </Text>
 
               {Boolean(statusNote) && !isClosed && (
@@ -409,7 +416,19 @@ export const TicketDetailScreen: React.FC<Props> = ({ navigation, route }) => {
               />
 
               {Boolean(replyError) && (
-                <Text style={styles.replyError}>{replyError}</Text>
+                <InlineErrorBanner
+                  error={rawReplyError}
+                  appError={{
+                    ...normalizeError(rawReplyError, {
+                      defaultMessage: replyError || "We couldn't send your reply. Please try again.",
+                    }),
+                    message: replyError || "We couldn't send your reply. Please try again.",
+                  }}
+                  onDismiss={() => {
+                    setReplyError(null);
+                    setRawReplyError(null);
+                  }}
+                />
               )}
 
               <TextInput

@@ -1,4 +1,4 @@
-ï»¿import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,9 @@ import {
   useMobileDocumentDownload,
 } from '../../features/documents/useMobileDocumentDownload';
 import { AppHeader } from '../../components/common/AppHeader';
+import { ErrorStateView } from '../../components/common/ErrorStateView';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -152,7 +155,7 @@ export const StatementsScreen: React.FC<Props> = ({ navigation, route }) => {
     if (!investmentId) return 'All my investments';
     const found = investmentChoices.find((inv: any) => inv.id === investmentId);
     if (!found) return 'Selected investment';
-    return `${found.package?.name || 'Investment'} Â· Ref ${found.internalRef}`;
+    return `${found.package?.name || 'Investment'} · Ref ${found.internalRef}`;
   }, [investmentId, investmentChoices]);
 
   const createdStatement = createState.data?.statement;
@@ -327,18 +330,32 @@ export const StatementsScreen: React.FC<Props> = ({ navigation, route }) => {
               <Ionicons name="document-text-outline" size={17} color="#FFFFFF" />
             )}
             <Text style={styles.submitBtnText}>
-              {createState.isLoading ? 'Creatingâ€¦' : 'Create a statement'}
+              {createState.isLoading ? 'Creating…' : 'Create a statement'}
             </Text>
           </TouchableOpacity>
 
           {(localError || createState.isError) && (
-            <Text style={styles.errorBannerText}>
-              {localError ??
-                extractApiErrorMessage(
-                  createState.error,
-                  "We couldn't create the statement. Please try again."
-                )}
-            </Text>
+            <InlineErrorBanner
+              error={createState.error}
+              appError={{
+                ...normalizeError(createState.error, {
+                  defaultMessage:
+                    localError ?? "We couldn't create the statement. Please try again.",
+                }),
+                ...(localError
+                  ? {
+                      category: 'validation',
+                      title: 'Check Date Range',
+                      message: localError,
+                      nextStep: 'Select valid start and end dates in YYYY-MM-DD format and try again.',
+                    }
+                  : {}),
+              }}
+              onDismiss={() => {
+                setLocalError(null);
+                createState.reset();
+              }}
+            />
           )}
 
           {createdStatement && !createState.isError && (
@@ -364,7 +381,7 @@ export const StatementsScreen: React.FC<Props> = ({ navigation, route }) => {
                   <Ionicons name="open-outline" size={15} color={colors.primary} />
                 )}
                 <Text style={styles.openPdfText}>
-                  {busyKey === `statement:${createdStatement.id}` ? 'Preparingâ€¦' : 'Open'}
+                  {busyKey === `statement:${createdStatement.id}` ? 'Preparing…' : 'Open'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -378,19 +395,19 @@ export const StatementsScreen: React.FC<Props> = ({ navigation, route }) => {
           {statementsQuery.isLoading ? (
             <View style={styles.centerBox}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.loadingText}>Loading your statementsâ€¦</Text>
+              <Text style={styles.loadingText}>Loading your statements…</Text>
             </View>
           ) : statementsQuery.isError ? (
-            <View style={styles.emptyCard}>
-              <Ionicons name="alert-circle-outline" size={28} color={colors.text} />
-              <Text style={styles.emptyTitle}>Couldn&apos;t load your statements</Text>
-              <TouchableOpacity
-                style={styles.retryBtn}
-                onPress={() => statementsQuery.refetch()}
-              >
-                <Text style={styles.retryBtnText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
+            <ErrorStateView
+              error={statementsQuery.error}
+              appError={normalizeError(statementsQuery.error, {
+                defaultMessage: "We couldn't load your generated statements right now.",
+                defaultNextStep: 'Check your connection and tap Retry.',
+              })}
+              onAction={() => statementsQuery.refetch()}
+              loading={statementsQuery.isFetching}
+              compact
+            />
           ) : statements.length === 0 ? (
             <View style={styles.emptyCard}>
               <View style={styles.emptyIconCircle}>
@@ -408,7 +425,7 @@ export const StatementsScreen: React.FC<Props> = ({ navigation, route }) => {
                 const isBusy = busyKey === key;
                 const isHighlighted = statementIdParam === st.id;
                 const rowError = errorState?.key === key ? errorState.message : null;
-                const periodText = `${formatUtcDay(st.periodStart)} â€“ ${formatUtcDay(st.periodEnd)}`;
+                const periodText = `${formatUtcDay(st.periodStart)} – ${formatUtcDay(st.periodEnd)}`;
                 const scopeText = st.internalRef ? `Ref ${st.internalRef}` : 'All investments';
                 const createdText = `Created ${formatUtcDateTime(st.generatedAt)}`;
 
@@ -422,7 +439,7 @@ export const StatementsScreen: React.FC<Props> = ({ navigation, route }) => {
                       <View style={styles.stmtMainCol}>
                         <Text style={styles.stmtTitle}>{st.title}</Text>
                         <Text style={styles.stmtMeta}>
-                          {[periodText, scopeText, createdText].join(' Â· ')}
+                          {[periodText, scopeText, createdText].join(' · ')}
                         </Text>
 
                         <TouchableOpacity
@@ -443,7 +460,7 @@ export const StatementsScreen: React.FC<Props> = ({ navigation, route }) => {
                             <Ionicons name="download-outline" size={14} color={colors.primary} />
                           )}
                           <Text style={styles.downloadChipText}>
-                            {isBusy ? 'Preparingâ€¦' : 'Download'}
+                            {isBusy ? 'Preparing…' : 'Download'}
                           </Text>
                         </TouchableOpacity>
 
@@ -493,7 +510,7 @@ export const StatementsScreen: React.FC<Props> = ({ navigation, route }) => {
 
                   {investmentChoices.map((inv: any) => {
                     const selected = investmentId === inv.id;
-                    const label = `${inv.package?.name || 'Investment'} Â· Ref ${inv.internalRef}`;
+                    const label = `${inv.package?.name || 'Investment'} · Ref ${inv.internalRef}`;
                     return (
                       <TouchableOpacity
                         key={inv.id}

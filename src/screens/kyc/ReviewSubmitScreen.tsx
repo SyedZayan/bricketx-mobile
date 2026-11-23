@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,8 @@ import {
   type MissingItem,
 } from '../../features/kyc/kycUtils';
 import { Button } from '../../components/ui/Button';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -40,6 +42,7 @@ export const ReviewSubmitScreen: React.FC<Props> = ({ navigation }) => {
     Boolean(kycData?.kycProfile?.declarationAccepted)
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<unknown>(null);
   const [submitMissing, setSubmitMissing] = useState<MissingItem[] | null>(null);
 
   const proactiveMissing = useMemo(
@@ -66,6 +69,7 @@ export const ReviewSubmitScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     setErrorMessage(null);
+    setRawError(null);
     setSubmitMissing(null);
 
     try {
@@ -76,6 +80,7 @@ export const ReviewSubmitScreen: React.FC<Props> = ({ navigation }) => {
       await refetch();
       navigation.getParent()?.goBack();
     } catch (err: any) {
+      setRawError(err);
       const missing = getMissingItemsFromError(err, kycData);
       if (missing.length > 0) {
         setSubmitMissing(missing);
@@ -90,7 +95,7 @@ export const ReviewSubmitScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.stepHeader}>
-        <Text style={styles.stepBadge}>STEP 6 OF 6 • FINAL REVIEW</Text>
+        <Text style={styles.stepBadge}>STEP 6 OF 6 � FINAL REVIEW</Text>
         <Text style={styles.title}>Review & Submit</Text>
         <Text style={styles.subtitle}>
           Verify all information and uploaded documents before submitting for compliance review.
@@ -109,23 +114,30 @@ export const ReviewSubmitScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           {missingItems.map((item) => (
             <View key={item.raw} style={styles.missingRow}>
-              <Text style={styles.missingItemText}>• {item.label}</Text>
+              <Text style={styles.missingItemText}>� {item.label}</Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate(item.targetRoute as any)}
                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               >
-                <Text style={styles.fixLink}>Fix →</Text>
+                <Text style={styles.fixLink}>Fix ?</Text>
               </TouchableOpacity>
             </View>
           ))}
         </View>
       )}
-
-      {!!errorMessage && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        </View>
-      )}
+        {!!errorMessage && (
+          <InlineErrorBanner
+            error={rawError}
+            appError={{
+              ...normalizeError(rawError, { defaultMessage: errorMessage }),
+              message: errorMessage,
+            }}
+            onDismiss={() => {
+              setErrorMessage(null);
+              setRawError(null);
+            }}
+          />
+        )}
 
       {/* 1. Personal Info */}
       <View style={styles.formCard}>

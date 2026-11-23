@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -17,6 +17,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
+import { InlineErrorBanner } from '../../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../../utils/errorHandler';
 import { usePostEsignEnvelopesByEnvelopeIdSignatureUploadsPresignMutation } from '../../../api/generated/investorApi';
 
 export type SignatureValue =
@@ -44,6 +46,7 @@ export const SignatureCaptureModal: React.FC<Props> = ({
   const [typedName, setTypedName] = useState(defaultName || '');
   const [isUploading, setIsUploading] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
+  const [rawInlineError, setRawInlineError] = useState<unknown>(null);
 
   const [pickedImageUri, setPickedImageUri] = useState<string | null>(null);
   const [pickedImageBase64, setPickedImageBase64] = useState<string | null>(null);
@@ -61,6 +64,7 @@ export const SignatureCaptureModal: React.FC<Props> = ({
   useEffect(() => {
     if (!visible) {
       setInlineError(null);
+    setRawInlineError(null);
     }
   }, [visible]);
 
@@ -69,6 +73,7 @@ export const SignatureCaptureModal: React.FC<Props> = ({
     setPickedImageBase64(null);
     setHasDrawn(false);
     setInlineError(null);
+    setRawInlineError(null);
   };
 
   const uploadSignatureBinary = async (base64Data: string): Promise<string> => {
@@ -102,6 +107,7 @@ export const SignatureCaptureModal: React.FC<Props> = ({
 
   const handleApplyTyped = () => {
     setInlineError(null);
+    setRawInlineError(null);
     const trimmed = typedName.trim();
     if (!trimmed) {
       setInlineError('Please enter your legal name to adopt a typed signature.');
@@ -113,6 +119,7 @@ export const SignatureCaptureModal: React.FC<Props> = ({
 
   const handleApplyDrawn = () => {
     setInlineError(null);
+    setRawInlineError(null);
     if (!hasDrawn) {
       setInlineError('Please draw your signature on the pad first.');
       return;
@@ -129,6 +136,7 @@ export const SignatureCaptureModal: React.FC<Props> = ({
 
   const handlePickImage = async () => {
     setInlineError(null);
+    setRawInlineError(null);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -149,6 +157,7 @@ export const SignatureCaptureModal: React.FC<Props> = ({
 
   const handleApplyUpload = async () => {
     setInlineError(null);
+    setRawInlineError(null);
     if (!pickedImageUri) {
       setInlineError('Please select a signature image to upload.');
       return;
@@ -167,6 +176,7 @@ export const SignatureCaptureModal: React.FC<Props> = ({
       onCapture({ method: 'drawn', objectKey });
       onClose();
     } catch (err: any) {
+      setRawInlineError(err);
       setInlineError(err?.message || 'Could not upload signature image.');
     } finally {
       setIsUploading(false);
@@ -179,6 +189,7 @@ export const SignatureCaptureModal: React.FC<Props> = ({
       if (data.type === 'stroke_detected') {
         setHasDrawn(true);
         setInlineError(null);
+    setRawInlineError(null);
       } else if (data.type === 'canvas_export') {
         const dataUrl = data.dataUrl;
         const objectKey = await uploadSignatureBinary(dataUrl);
@@ -291,15 +302,17 @@ export const SignatureCaptureModal: React.FC<Props> = ({
           </View>
 
           {inlineError && (
-            <View style={styles.errorBanner}>
-              <Ionicons
-                name="alert-circle"
-                size={16}
-                color={colors.error}
-                style={{ flexShrink: 0 }}
-              />
-              <Text style={styles.errorBannerText}>{inlineError}</Text>
-            </View>
+            <InlineErrorBanner
+              error={rawInlineError}
+              appError={{
+                ...normalizeError(rawInlineError, { defaultMessage: inlineError }),
+                message: inlineError,
+              }}
+              onDismiss={() => {
+                setInlineError(null);
+                setRawInlineError(null);
+              }}
+            />
           )}
 
           <View style={styles.tabBar}>
@@ -387,6 +400,7 @@ export const SignatureCaptureModal: React.FC<Props> = ({
                   onChangeText={(v) => {
                     setTypedName(v);
                     if (inlineError) setInlineError(null);
+    setRawInlineError(null);
                   }}
                   placeholder="e.g. Syed Zayan Ali"
                   placeholderTextColor={colors.textMuted}

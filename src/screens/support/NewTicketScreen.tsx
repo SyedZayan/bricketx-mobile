@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,8 @@ import {
 } from '../../api/generated/investorApi';
 import { colors } from '../../theme/colors';
 import { AttachmentPicker } from './AttachmentPicker';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import {
   ISSUE_TYPES,
   IssueType,
@@ -61,6 +63,7 @@ export const NewTicketScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [showRelatedModal, setShowRelatedModal] = useState(false);
+  const [rawFormError, setRawFormError] = useState<unknown>(null);
 
   const [errors, setErrors] = useState<{
     issueType?: string;
@@ -122,6 +125,7 @@ export const NewTicketScreen: React.FC<Props> = ({ navigation, route }) => {
     }
 
     setErrors({});
+    setRawFormError(null);
     try {
       const res = await createTicket({
         body: {
@@ -136,6 +140,7 @@ export const NewTicketScreen: React.FC<Props> = ({ navigation, route }) => {
 
       navigation.replace('TicketDetail', { id: res.ticket.id });
     } catch (err: any) {
+      setRawFormError(err);
       const apiMsg =
         err?.data?.message || "We couldn't send your message. Please try again.";
       setErrors({ form: apiMsg });
@@ -268,10 +273,19 @@ export const NewTicketScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
 
           {Boolean(errors.form) && (
-            <View style={styles.formErrorBox}>
-              <Ionicons name="alert-circle-outline" size={16} color={colors.text} />
-              <Text style={styles.formErrorText}>{errors.form}</Text>
-            </View>
+            <InlineErrorBanner
+              error={rawFormError}
+              appError={{
+                ...normalizeError(rawFormError, {
+                  defaultMessage: errors.form || "We couldn't send your message. Please try again.",
+                }),
+                message: errors.form || "We couldn't send your message. Please try again.",
+              }}
+              onDismiss={() => {
+                setErrors((prev) => ({ ...prev, form: undefined }));
+                setRawFormError(null);
+              }}
+            />
           )}
 
           <View style={styles.actionsRow}>

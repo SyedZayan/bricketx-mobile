@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePostAuthChangePasswordMutation } from '../../api/generated/investorApi';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
+import { normalizeError } from '../../utils/errorHandler';
 import {
   StatusFeedbackModal,
   FeedbackVariant,

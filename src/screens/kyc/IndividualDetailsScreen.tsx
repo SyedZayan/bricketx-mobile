@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -14,6 +14,8 @@ import {
 } from '../../features/kyc/kycUtils';
 import { TextField } from '../../components/ui/TextField';
 import { Button } from '../../components/ui/Button';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 
@@ -35,6 +37,7 @@ export const IndividualDetailsScreen: React.FC<Props> = ({ navigation }) => {
   const [employerName, setEmployerName] = useState(details?.employerName || '');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<unknown>(null);
 
   useEffect(() => {
     if (!details) return;
@@ -48,6 +51,7 @@ export const IndividualDetailsScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleContinue = async () => {
     setErrorMessage(null);
+    setRawError(null);
     const errors: Record<string, string> = {};
 
     if (!residentialAddress.trim()) {
@@ -74,6 +78,7 @@ export const IndividualDetailsScreen: React.FC<Props> = ({ navigation }) => {
 
       navigation.navigate('IdentityDocs');
     } catch (err: any) {
+      setRawError(err);
       if (err?.data?.error?.code === 'NAME_NOT_LATIN') {
         setFieldErrors((prev) => ({
           ...prev,
@@ -106,9 +111,17 @@ export const IndividualDetailsScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.formCard}>
         {!!errorMessage && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
+          <InlineErrorBanner
+            error={rawError}
+            appError={{
+              ...normalizeError(rawError, { defaultMessage: errorMessage }),
+              message: errorMessage,
+            }}
+            onDismiss={() => {
+              setErrorMessage(null);
+              setRawError(null);
+            }}
+          />
         )}
 
         <TextField

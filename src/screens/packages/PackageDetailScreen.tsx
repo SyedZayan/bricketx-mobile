@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,8 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { DetailTab } from './detail/types';
 import { AppHeader } from '../../components/common/AppHeader';
+import { ErrorStateView } from '../../components/common/ErrorStateView';
+import { normalizeError } from '../../utils/errorHandler';
 import {
   formatRoi,
   formatCurrency,

@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,8 @@ import { colors } from '../../../theme/colors';
 import { spacing } from '../../../theme/spacing';
 import { getStatusMeta } from './investmentTypes';
 import { AppHeader } from '../../../components/common/AppHeader';
+import { ErrorStateView } from '../../../components/common/ErrorStateView';
+import { normalizeError } from '../../../utils/errorHandler';
 import { PoolMarker } from '../../../components/invest/PoolMarker';
 import {
   StatusFeedbackModal,
@@ -202,14 +204,20 @@ export const InvestmentDetailScreen: React.FC<Props> = ({ route, navigation }) =
   }
 
   if (error || !inv || !statusMeta) {
+    const norm = normalizeError(error, {
+      defaultMessage: 'Unable to load this investment record right now.',
+      defaultNextStep: 'Check your connection and tap Retry, or go back to Portfolio.',
+    });
     return (
       <View style={styles.centerContainer}>
-        <Ionicons name="alert-circle-outline" size={44} color={colors.error} />
-        <Text style={styles.errorTitle}>Investment Not Found</Text>
-        <Text style={styles.errorSub}>Unable to load this investment record.</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()} activeOpacity={0.8}>
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
+        <ErrorStateView
+          error={error}
+          appError={norm}
+          onAction={() => refetch()}
+          loading={isFetching}
+          secondaryLabel="Go Back"
+          onSecondary={() => navigation.goBack()}
+        />
       </View>
     );
   }

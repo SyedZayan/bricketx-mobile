@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -25,6 +25,8 @@ import {
 } from '../features/kyc/kycUtils';
 import { DocumentSlotCard } from '../components/kyc/DocumentSlotCard';
 import { Button } from '../components/ui/Button';
+import { InlineErrorBanner } from '../components/common/InlineErrorBanner';
+import { normalizeError } from '../utils/errorHandler';
 import { BasicInfoScreen } from '../screens/kyc/BasicInfoScreen';
 import { InvestorTypeScreen } from '../screens/kyc/InvestorTypeScreen';
 import { IndividualDetailsScreen } from '../screens/kyc/IndividualDetailsScreen';
@@ -42,12 +44,13 @@ export const KycStack = ({ navigation }: any) => {
   const [resubmitKyc, { isLoading: isResubmitting }] = usePostKycMeSubmitMutation();
   const [restartKyc, { isLoading: isRestarting }] = usePostKycMeRestartMutation();
   const [actionError, setActionError] = React.useState<string | null>(null);
+  const [rawActionError, setRawActionError] = React.useState<unknown>(null);
 
   if (isLoading || !kycData) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading KYC status…</Text>
+        <Text style={styles.loadingText}>Loading KYC status�</Text>
       </View>
     );
   }
@@ -69,11 +72,13 @@ export const KycStack = ({ navigation }: any) => {
 
     const handleResubmit = async () => {
       setActionError(null);
+    setRawActionError(null);
       try {
         await resubmitKyc({ body: { declarationAccepted: true } }).unwrap();
         await refetch();
         navigation.goBack();
       } catch (err) {
+        setRawActionError(err);
         const missing = getMissingItemsFromError(err, kycData);
         if (missing.length > 0) {
           setActionError(
@@ -115,9 +120,20 @@ export const KycStack = ({ navigation }: any) => {
         ))}
 
         {!!actionError && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{actionError}</Text>
-          </View>
+          <InlineErrorBanner
+            error={rawActionError}
+            appError={{
+              ...normalizeError(rawActionError, {
+                defaultMessage: actionError,
+                defaultNextStep: 'Verify all required documents are uploaded and tap Resubmit Application again.',
+              }),
+              message: actionError,
+            }}
+            onDismiss={() => {
+              setActionError(null);
+              setRawActionError(null);
+            }}
+          />
         )}
 
         <Button
@@ -137,10 +153,12 @@ export const KycStack = ({ navigation }: any) => {
 
     const handleRestart = async () => {
       setActionError(null);
+    setRawActionError(null);
       try {
         await restartKyc().unwrap();
         await refetch();
       } catch (err) {
+        setRawActionError(err);
         setActionError(getKycErrorMessage(err, 'Unable to restart KYC application.'));
       }
     };

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,8 @@ import {
 import { isValidEmail } from '../../utils/passwordRules';
 import { OtpInput } from '../../components/ui/OtpInput';
 import { TextField } from '../../components/ui/TextField';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { Button } from '../../components/ui/Button';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -35,6 +37,7 @@ export const VerifyEmailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [typedEmail, setTypedEmail] = useState(initialEmail);
   const [otp, setOtp] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<unknown>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [cooldownSeconds, setCooldownSeconds] = useState(
     initialEmail && initialMessage ? RESEND_COOLDOWN_SECONDS : 0
@@ -55,6 +58,7 @@ export const VerifyEmailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleVerify = async () => {
     setErrorMessage(null);
+    setRawError(null);
     setSuccessNotice(null);
 
     if (!isValidEmail(effectiveEmail)) {
@@ -88,6 +92,7 @@ export const VerifyEmailScreen: React.FC<Props> = ({ route, navigation }) => {
         ],
       });
     } catch (err: any) {
+      setRawError(err);
       if (err?.status === 400) {
         setErrorMessage('Invalid or expired verification code.');
       } else if (err?.status === 429) {
@@ -105,6 +110,7 @@ export const VerifyEmailScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleResend = async () => {
     if (cooldownSeconds > 0) return;
     setErrorMessage(null);
+    setRawError(null);
     setSuccessNotice(null);
 
     if (!isValidEmail(effectiveEmail)) {
@@ -123,6 +129,7 @@ export const VerifyEmailScreen: React.FC<Props> = ({ route, navigation }) => {
       );
       setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
     } catch (err: any) {
+      setRawError(err);
       if (err?.status === 429) {
         setErrorMessage('Please wait before requesting another code.');
         setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
@@ -170,9 +177,17 @@ export const VerifyEmailScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <View style={styles.card}>
           {!!errorMessage && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
+            <InlineErrorBanner
+              error={rawError}
+              appError={{
+                ...normalizeError(rawError, { defaultMessage: errorMessage }),
+                message: errorMessage,
+              }}
+              onDismiss={() => {
+                setErrorMessage(null);
+                setRawError(null);
+              }}
+            />
           )}
 
           {!!successNotice && (
@@ -217,7 +232,7 @@ export const VerifyEmailScreen: React.FC<Props> = ({ route, navigation }) => {
                 {cooldownSeconds > 0
                   ? `Resend in ${cooldownSeconds}s`
                   : isResending
-                  ? 'Resending…'
+                  ? 'Resending�'
                   : 'Resend code'}
               </Text>
             </TouchableOpacity>

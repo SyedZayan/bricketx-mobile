@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -142,13 +142,30 @@ export const AccountScreen: React.FC<NativeStackScreenProps<any>> = ({ navigatio
         return;
       }
 
-      const success = await BiometricsService.authenticate(
+      const authResult = await BiometricsService.authenticate(
         `Authorize ${biometricTypeName} for BricketX unlock`
       );
 
-      if (success) {
+      if (authResult.success) {
+        const currentRefreshToken = await secureSession.getRefreshToken();
         setBiometricsEnabled(true);
-        await BiometricsService.setEnabled(true, applicantEmail);
+        await BiometricsService.setEnabled(
+          true,
+          applicantEmail,
+          currentRefreshToken || undefined
+        );
+      } else if (!authResult.cancelled) {
+        setModal({
+          visible: true,
+          variant: 'warning',
+          iconName: 'finger-print-outline',
+          title: `${biometricTypeName} Unavailable`,
+          message:
+            authResult.message ||
+            'Biometric verification was not completed. Please try again or use your password.',
+          primaryLabel: 'Got It',
+          onPrimary: closeModal,
+        });
       }
     } else {
       setBiometricsEnabled(false);
@@ -406,7 +423,7 @@ export const AccountScreen: React.FC<NativeStackScreenProps<any>> = ({ navigatio
         </View>
 
         <Text style={styles.footerVersion}>
-          BricketX Private Wealth  •  v1.0.0 (Build 42)
+          BricketX Private Wealth  �  v1.0.0 (Build 42)
         </Text>
         <Text style={styles.footerSecurity}>
           Bank-grade 256-bit AES encryption active

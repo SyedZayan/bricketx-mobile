@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,8 @@ import { useAppDispatch } from '../../store/hooks';
 import { setAuthenticatedUser, setMfaPending } from '../../store/authSlice';
 import { OtpInput } from '../../components/ui/OtpInput';
 import { TextField } from '../../components/ui/TextField';
+import { InlineErrorBanner } from '../../components/common/InlineErrorBanner';
+import { normalizeError } from '../../utils/errorHandler';
 import { Button } from '../../components/ui/Button';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -37,6 +39,7 @@ export const MfaVerifyScreen: React.FC<Props> = ({ navigation }) => {
   const [totp, setTotp] = useState('');
   const [recoveryCode, setRecoveryCode] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<unknown>(null);
   const [mustSignInAgain, setMustSignInAgain] = useState(false);
 
   const [verifyMfa, { isLoading }] = usePostAuthMobileMfaVerifyMutation();
@@ -61,6 +64,7 @@ export const MfaVerifyScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleVerify = async () => {
     setErrorMessage(null);
+    setRawError(null);
     const currentToken = tokenMemory.getMfaToken();
     if (!currentToken) {
       setMustSignInAgain(true);
@@ -122,6 +126,7 @@ export const MfaVerifyScreen: React.FC<Props> = ({ navigation }) => {
         })
       );
     } catch (err: any) {
+      setRawError(err);
       const status = err?.status;
       const msg = err?.data?.error?.message || '';
       if (status === 429 || (status === 401 && /expired/i.test(msg))) {
@@ -171,9 +176,20 @@ export const MfaVerifyScreen: React.FC<Props> = ({ navigation }) => {
 
         <View style={styles.card}>
           {!!errorMessage && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
+            <InlineErrorBanner
+              error={rawError}
+              appError={{
+                ...normalizeError(rawError, { defaultMessage: errorMessage }),
+                message: errorMessage,
+                nextStep: mustSignInAgain
+                  ? 'Go back to sign in to start a fresh verification session.'
+                  : normalizeError(rawError, { defaultMessage: errorMessage }).nextStep,
+              }}
+              onDismiss={() => {
+                setErrorMessage(null);
+                setRawError(null);
+              }}
+            />
           )}
 
           {mustSignInAgain ? (
@@ -205,6 +221,7 @@ export const MfaVerifyScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.switchModeBtn}
                 onPress={() => {
                   setErrorMessage(null);
+    setRawError(null);
                   setUseRecovery((prev) => !prev);
                 }}
               >

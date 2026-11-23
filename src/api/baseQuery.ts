@@ -11,9 +11,12 @@ import { setRetryAfterUntil, logoutAction } from '../store/authSlice';
 
 const mutex = new Mutex();
 const BASIC_AUTH = process.env.EXPO_PUBLIC_BASIC_AUTH_TOKEN;
+const REQUEST_TIMEOUT_MS = 20000;
+const DEFAULT_RATE_LIMIT_MS = 30000;
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: process.env.EXPO_PUBLIC_API_URL,
+  timeout: REQUEST_TIMEOUT_MS,
   prepareHeaders: (headers) => {
     headers.set('Accept', 'application/json');
 
@@ -32,6 +35,26 @@ const rawBaseQuery = fetchBaseQuery({
   },
 });
 
+function resolveRateLimitWaitMs(retryAfterHeader: string | null): number {
+  if (!retryAfterHeader) return DEFAULT_RATE_LIMIT_MS;
+
+  const trimmed = retryAfterHeader.trim();
+  const seconds = Number(trimmed);
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return Math.min(Math.max(Math.round(seconds * 1000), 1000), 300000);
+  }
+
+  const parsedDateMs = Date.parse(trimmed);
+  if (!Number.isNaN(parsedDateMs)) {
+    const diffMs = parsedDateMs - Date.now();
+    if (diffMs > 0) {
+      return Math.min(diffMs, 300000);
+    }
+  }
+
+  return DEFAULT_RATE_LIMIT_MS;
+}
+
 export const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
@@ -40,14 +63,11 @@ export const baseQueryWithReauth: BaseQueryFn<
   await mutex.waitForUnlock();
   let result = await rawBaseQuery(args, api, extraOptions);
 
-  // 1. Handle HTTP 429 Rate Limiting
+  // 1. Handle HTTP 429 Rate Limiting with fallback cooldown
   if (result.error && result.error.status === 429) {
-    const retryAfterHeader = result.meta?.response?.headers.get('retry-after');
-    if (retryAfterHeader) {
-      const seconds = parseInt(retryAfterHeader, 10);
-      const waitMs = !isNaN(seconds) ? seconds * 1000 : 30000;
-      api.dispatch(setRetryAfterUntil(Date.now() + waitMs));
-    }
+    const retryAfterHeader = result.meta?.response?.headers.get('retry-after') ?? null;
+    const waitMs = resolveRateLimitWaitMs(retryAfterHeader);
+    api.dispatch(setRetryAfterUntil(Date.now() + waitMs));
   }
 
   // 2. Handle HTTP 401 Unauthorized with Refresh Token Rotation
