@@ -388,14 +388,14 @@ export const AccountScreen: React.FC<NativeStackScreenProps<any>> = ({ navigatio
               icon="newspaper-outline"
               title="Investor Agreement"
               subtitle="Terms of participation, pooling & returns"
-              onPress={() => openExternalUrl('https://bricketx.com/terms')}
+              onPress={() => handleNavigation('TermsOfService')}
             />
             <View style={styles.divider} />
             <AccountMenuItem
               icon="shield-outline"
               title="Privacy Policy"
               subtitle="Data encryption & banking standards"
-              onPress={() => openExternalUrl('https://bricketx.com/privacy')}
+              onPress={() => handleNavigation('PrivacyPolicy')}
             />
           </View>
         </View>
@@ -414,8 +414,8 @@ export const AccountScreen: React.FC<NativeStackScreenProps<any>> = ({ navigatio
             <View style={styles.divider} />
             <AccountMenuItem
               icon="trash-outline"
-              title="Close Account"
-              subtitle="Review liquidation & account termination"
+              title="Delete & Close Account"
+              subtitle="Permanently delete your account & review data retention"
               onPress={() => handleNavigation('AccountClosure')}
               isDestructive
             />
@@ -423,7 +423,7 @@ export const AccountScreen: React.FC<NativeStackScreenProps<any>> = ({ navigatio
         </View>
 
         <Text style={styles.footerVersion}>
-          BricketX Private Wealth  •  v1.0.0 (Build 42)
+          BricketX Private Wealth  -  v1.0.0 (Build 42)
         </Text>
         <Text style={styles.footerSecurity}>
           Bank-grade 256-bit AES encryption active

@@ -1,4 +1,4 @@
-﻿import { NavigatorScreenParams } from '@react-navigation/native';
+import { NavigatorScreenParams } from '@react-navigation/native';
 
 export type AuthStackParamList = {
   Login: { notice?: string; email?: string } | undefined;
@@ -8,6 +8,8 @@ export type AuthStackParamList = {
   ResetPassword: { email: string };
   MfaVerify: undefined;
   RoleBlocked: undefined;
+  PrivacyPolicy: undefined;
+  TermsOfService: undefined;
 };
 
 export type KycStackParamList = {
@@ -69,6 +71,8 @@ export type RootStackParamList = {
   };
   UpdatePassword: undefined;
   AccountClosure: undefined;
+  PrivacyPolicy: undefined;
+  TermsOfService: undefined;
   Support: undefined;
   NewTicket: { initialInvestmentId?: string; initialPackageId?: string } | undefined;
   TicketDetail: { id: string };

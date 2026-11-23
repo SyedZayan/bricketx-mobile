@@ -471,7 +471,7 @@ export const LoginScreen: React.FC<Props> = ({ route, navigation }) => {
                     size={20}
                     color={colors.primary}
                   />
-                  <Text style={styles.biometricBtnText}>
+                  <Text style={styles.biometricBtnText} numberOfLines={1}>
                     Continue with {biometricName}
                   </Text>
                 </>
@@ -660,20 +660,23 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   biometricBtn: {
-    flexDirection: 'row', flexWrap: 'wrap',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 9,
-    height: 48,
+    minHeight: 48,
+    paddingHorizontal: 14,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E0D8',
   },
   biometricBtnText: {
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '700',
     color: colors.text,
+    textAlign: 'center',
   },
   bottomSection: {
     alignItems: 'center',

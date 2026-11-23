@@ -13,7 +13,28 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.bricketx.investor"
+      "bundleIdentifier": "com.bricketx.investor",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Allow BricketX to use Face ID to securely unlock your investor portal."
+      },
+      "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyTrackingDomains": [],
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+            "NSPrivacyAccessedAPITypeReasons": ["E174.1"]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -29,6 +50,12 @@
     },
     "plugins": [
       "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow BricketX to use Face ID to securely unlock your investor portal."
+        }
+      ],
       [
         "expo-camera",
         {

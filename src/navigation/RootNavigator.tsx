@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAppSelector } from '../store/hooks';
@@ -7,6 +7,8 @@ import { AppSplashScreen } from '../components/common/AppSplashScreen';
 import { DashboardScreen } from '../screens/main/DashboardScreen';
 import { KycProfileViewScreen } from '../screens/account/KycProfileViewScreen';
 import { AccountClosureScreen } from '../screens/account/AccountClosureScreen';
+import { PrivacyPolicyScreen } from '../screens/account/PrivacyPolicyScreen';
+import { TermsOfServiceScreen } from '../screens/account/TermsOfServiceScreen';
 import { PackageDetailScreen } from '../screens/packages/PackageDetailScreen';
 import { CommitmentModal } from '../screens/investments/commit/CommitmentModal';
 import { InvestmentDetailScreen } from '../screens/investments/detail/InvestmentDetailScreen';
@@ -66,6 +68,8 @@ export const RootNavigator = () => {
               options={{ presentation: 'modal' }}
             />
             <RootStack.Screen name="AccountClosure" component={AccountClosureScreen} />
+            <RootStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+            <RootStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
             <RootStack.Screen name="Support" component={SupportScreen} />
             <RootStack.Screen name="NewTicket" component={NewTicketScreen} />
             <RootStack.Screen name="TicketDetail" component={TicketDetailScreen} />
