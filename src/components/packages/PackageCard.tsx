@@ -176,16 +176,16 @@ const PackageCardComponent: React.FC<PackageCardProps> = ({
                 isKycApproved && styles.complianceTextApproved,
               ]}
             >
-              {isKycApproved ? 'KYC Verified' : 'Accredited Required'}
+              {isKycApproved ? 'KYC Verified' : 'KYC required to invest'}
             </Text>
           </View>
 
-          <View style={[styles.actionBtn, !isKycApproved && styles.actionBtnGated]}>
+          <View style={styles.actionBtn}>
             <Text style={styles.actionBtnText}>
-              {isKycApproved ? 'View Data Room' : 'Verify to Allocate'}
+              {isKycApproved ? 'View Data Room' : 'View Details'}
             </Text>
             <Ionicons
-              name={isKycApproved ? 'chevron-forward' : 'lock-closed'}
+              name="chevron-forward"
               size={13}
               color="#FFFFFF"
             />

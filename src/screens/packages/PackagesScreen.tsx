@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -111,13 +111,16 @@ export const PackagesScreen = () => {
 
   const handlePackagePress = useCallback(
     (pkg: PackageItem) => {
-      if (!isKycApproved) {
-        navigation.navigate('KycModal');
-        return;
+      const parentNav = navigation.getParent() as
+        | { navigate: (name: string, params?: Record<string, unknown>) => void }
+        | undefined;
+      if (parentNav?.navigate) {
+        parentNav.navigate('PackageDetail', { id: pkg.id });
+      } else {
+        navigation.navigate('PackageDetail', { id: pkg.id });
       }
-      navigation.navigate('PackageDetail', { id: pkg.id });
     },
-    [isKycApproved, navigation]
+    [navigation]
   );
 
   const renderItem = useCallback(
