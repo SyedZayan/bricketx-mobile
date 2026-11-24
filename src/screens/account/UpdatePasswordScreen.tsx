@@ -11,10 +11,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useDispatch } from 'react-redux';
 import { usePostAuthChangePasswordMutation } from '../../api/generated/investorApi';
+import { baseApi } from '../../api/baseApi';
+import { tokenMemory } from '../../api/tokenMemory';
+import { logoutAction } from '../../store/authSlice';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
-import { normalizeError } from '../../utils/errorHandler';
 import {
   StatusFeedbackModal,
   FeedbackVariant,
@@ -30,6 +33,7 @@ interface ModalState {
 
 export const UpdatePasswordScreen: React.FC<NativeStackScreenProps<any>> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const dispatch = useDispatch();
   const [changePassword, { isLoading }] = usePostAuthChangePasswordMutation();
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -52,12 +56,35 @@ export const UpdatePasswordScreen: React.FC<NativeStackScreenProps<any>> = ({ na
     setModal((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  // Validation rules
   const hasMinLength = newPassword.length >= 8;
   const hasUpper = /[A-Z]/.test(newPassword);
   const hasNumber = /[0-9]/.test(newPassword);
   const isMatch = newPassword.length > 0 && newPassword === confirmPassword;
   const isValid = hasMinLength && hasUpper && hasNumber && isMatch && currentPassword.length > 0;
+
+  const signOutAndRedirectToLogin = useCallback(() => {
+    tokenMemory.setAccessToken(null);
+    dispatch(baseApi.util.resetApiState());
+    dispatch(logoutAction());
+    const rootNav = navigation.getParent?.() ?? navigation;
+    try {
+      rootNav.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'Login',
+            params: {
+              notice: 'Your password was changed and active sessions were ended. Please sign in again.',
+            },
+          },
+        ],
+      });
+    } catch {
+      navigation.navigate('Login', {
+        notice: 'Your password was changed and active sessions were ended. Please sign in again.',
+      });
+    }
+  }, [dispatch, navigation]);
 
   const handleSubmit = async () => {
     if (!currentPassword) {
@@ -93,10 +120,11 @@ export const UpdatePasswordScreen: React.FC<NativeStackScreenProps<any>> = ({ na
         visible: true,
         variant: 'success',
         title: 'Password Updated',
-        message: 'Your security password has been changed successfully.',
+        message:
+          'Your password has been updated and all active sessions have been ended for your security. Please sign in again.',
         onPrimary: () => {
           closeModal();
-          navigation.goBack();
+          signOutAndRedirectToLogin();
         },
       });
     } catch (err: any) {
@@ -120,13 +148,14 @@ export const UpdatePasswordScreen: React.FC<NativeStackScreenProps<any>> = ({ na
         size={15}
         color={met ? '#2E7D32' : colors.textMuted}
       />
-      <Text style={[styles.reqText, met && styles.reqTextMet]} numberOfLines={2}>{label}</Text>
+      <Text style={[styles.reqText, met && styles.reqTextMet]} numberOfLines={2}>
+        {label}
+      </Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Top Header */}
       <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 16) + 4 }]}>
         <TouchableOpacity
           style={styles.backBtn}
@@ -145,7 +174,6 @@ export const UpdatePasswordScreen: React.FC<NativeStackScreenProps<any>> = ({ na
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          {/* Current Password */}
           <Text style={styles.fieldLabel}>CURRENT PASSWORD</Text>
           <View style={styles.inputContainer}>
             <TextInput
@@ -156,10 +184,7 @@ export const UpdatePasswordScreen: React.FC<NativeStackScreenProps<any>> = ({ na
               value={currentPassword}
               onChangeText={setCurrentPassword}
             />
-            <TouchableOpacity
-              style={styles.eyeBtn}
-              onPress={() => setShowCurrent(!showCurrent)}
-            >
+            <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowCurrent(!showCurrent)}>
               <Ionicons
                 name={showCurrent ? 'eye-off-outline' : 'eye-outline'}
                 size={18}
@@ -170,7 +195,6 @@ export const UpdatePasswordScreen: React.FC<NativeStackScreenProps<any>> = ({ na
 
           <View style={styles.divider} />
 
-          {/* New Password */}
           <Text style={styles.fieldLabel}>NEW PASSWORD</Text>
           <View style={styles.inputContainer}>
             <TextInput
@@ -181,10 +205,7 @@ export const UpdatePasswordScreen: React.FC<NativeStackScreenProps<any>> = ({ na
               value={newPassword}
               onChangeText={setNewPassword}
             />
-            <TouchableOpacity
-              style={styles.eyeBtn}
-              onPress={() => setShowNew(!showNew)}
-            >
+            <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowNew(!showNew)}>
               <Ionicons
                 name={showNew ? 'eye-off-outline' : 'eye-outline'}
                 size={18}
@@ -193,7 +214,6 @@ export const UpdatePasswordScreen: React.FC<NativeStackScreenProps<any>> = ({ na
             </TouchableOpacity>
           </View>
 
-          {/* Confirm New Password */}
           <Text style={[styles.fieldLabel, { marginTop: 14 }]}>CONFIRM NEW PASSWORD</Text>
           <View style={styles.inputContainer}>
             <TextInput
@@ -204,10 +224,7 @@ export const UpdatePasswordScreen: React.FC<NativeStackScreenProps<any>> = ({ na
               value={confirmPassword}
               onChangeText={setConfirmPassword}
             />
-            <TouchableOpacity
-              style={styles.eyeBtn}
-              onPress={() => setShowConfirm(!showConfirm)}
-            >
+            <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowConfirm(!showConfirm)}>
               <Ionicons
                 name={showConfirm ? 'eye-off-outline' : 'eye-outline'}
                 size={18}
@@ -216,7 +233,6 @@ export const UpdatePasswordScreen: React.FC<NativeStackScreenProps<any>> = ({ na
             </TouchableOpacity>
           </View>
 
-          {/* Checklist */}
           <View style={styles.reqContainer}>
             <Text style={styles.reqTitle}>Password requirements:</Text>
             {renderRequirement('At least 8 characters long', hasMinLength)}
@@ -234,7 +250,9 @@ export const UpdatePasswordScreen: React.FC<NativeStackScreenProps<any>> = ({ na
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.submitBtnText} numberOfLines={2}>Save Password</Text>
+              <Text style={styles.submitBtnText} numberOfLines={2}>
+                Save Password
+              </Text>
             )}
           </TouchableOpacity>
         </View>

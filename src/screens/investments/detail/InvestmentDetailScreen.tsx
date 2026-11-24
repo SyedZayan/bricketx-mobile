@@ -19,6 +19,7 @@ import { baseApi } from '../../../api/baseApi';
 import {
   useGetInvestmentsByIdQuery,
   usePostInvestmentsByIdPaymentSentMutation,
+  usePostInvestmentsByIdCancelMutation,
 } from '../../../api/generated/investorApi';
 import { colors } from '../../../theme/colors';
 import { spacing } from '../../../theme/spacing';
@@ -73,6 +74,8 @@ export const InvestmentDetailScreen: React.FC<Props> = ({ route, navigation }) =
 
   const [markPaymentSent, { isLoading: isMarkingPayment }] =
     usePostInvestmentsByIdPaymentSentMutation();
+  const [cancelDraft, { isLoading: isCancellingDraft }] =
+    usePostInvestmentsByIdCancelMutation();
 
   const [wireModal, setWireModal] = useState<WireModalState>({
     visible: false,
@@ -498,22 +501,83 @@ export const InvestmentDetailScreen: React.FC<Props> = ({ route, navigation }) =
         ]}
       >
         {isDraft ? (
-          <TouchableOpacity
-            style={styles.actionButtonFull}
-            activeOpacity={0.85}
-            onPress={() => {
-              navigation.navigate('EsignModal', {
-                investmentId: inv.id,
-                internalRef: inv.internalRef,
-                packageName: inv.package?.name || 'Investment Offering',
-              });
-            }}
-          >
-            <Text style={styles.actionButtonText} numberOfLines={2}>
-              Sign Agreement
-            </Text>
-            <Ionicons name="document-text-outline" size={16} color="#FFFFFF" style={{ flexShrink: 0 }} />
-          </TouchableOpacity>
+          <View style={styles.fundingActionRow}>
+            <TouchableOpacity
+              style={styles.actionButtonSecondary}
+              activeOpacity={0.85}
+              disabled={isCancellingDraft}
+              onPress={() => {
+                setWireModal({
+                  visible: true,
+                  variant: 'confirm',
+                  title: 'Cancel Draft Investment',
+                  message:
+                    'Cancel this unsigned draft investment? This cannot be undone.',
+                  details: [
+                    ...(inv.internalRef ? [`Reference: ${inv.internalRef}`] : []),
+                    `Principal Amount: ${formatCurrency(inv.principal, inv.currency)}`,
+                  ],
+                  primaryLabel: 'Cancel Draft',
+                  secondaryLabel: 'Keep Draft',
+                  onPrimary: async () => {
+                    try {
+                      await cancelDraft({ id: inv.id }).unwrap();
+                      dispatch(baseApi.util.invalidateTags(['Investments', 'DashboardStats']));
+                      await refetch();
+                      setWireModal({
+                        visible: true,
+                        variant: 'success',
+                        title: 'Draft Cancelled',
+                        message: 'Your unsigned draft investment has been cancelled.',
+                        primaryLabel: 'Done',
+                        onPrimary: () => {
+                          closeWireModal();
+                          navigation.goBack();
+                        },
+                      });
+                    } catch (err: any) {
+                      setWireModal({
+                        visible: true,
+                        variant: 'error',
+                        title: 'Cancellation Failed',
+                        message:
+                          err?.data?.error?.message ||
+                          err?.data?.message ||
+                          'Unable to cancel this draft right now. Please try again.',
+                        primaryLabel: 'Close',
+                        onPrimary: closeWireModal,
+                      });
+                    }
+                  },
+                });
+              }}
+            >
+              {isCancellingDraft ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text style={styles.actionButtonSecondaryText} numberOfLines={2}>
+                  Cancel Draft
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButtonPrimary}
+              activeOpacity={0.85}
+              onPress={() => {
+                navigation.navigate('EsignModal', {
+                  investmentId: inv.id,
+                  internalRef: inv.internalRef,
+                  packageName: inv.package?.name || 'Investment Offering',
+                });
+              }}
+            >
+              <Text style={styles.actionButtonText} numberOfLines={2}>
+                Sign Agreement
+              </Text>
+              <Ionicons name="document-text-outline" size={16} color="#FFFFFF" style={{ flexShrink: 0 }} />
+            </TouchableOpacity>
+          </View>
         ) : isPendingFunding ? (
           <View style={styles.fundingActionRow}>
             <TouchableOpacity

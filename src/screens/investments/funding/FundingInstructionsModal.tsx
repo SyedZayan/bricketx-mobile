@@ -82,7 +82,7 @@ export const FundingInstructionsModal: React.FC<Props> = ({ route, navigation })
   });
 
   const { data, isLoading, error, refetch } =
-    useGetInvestmentsByIdFundingInstructionsQuery({ id: investmentId });
+    useGetInvestmentsByIdFundingInstructionsQuery({ id: investmentId }, { refetchOnMountOrArgChange: true });
 
   const [markPaymentSent, { isLoading: isMarkingSent }] =
     usePostInvestmentsByIdPaymentSentMutation();
@@ -147,7 +147,7 @@ export const FundingInstructionsModal: React.FC<Props> = ({ route, navigation })
   const handleDownloadPaymentInstructionsPdf = async () => {
     try {
       setIsDownloadingPdf(true);
-      const targetUrl = `${process.env.EXPO_PUBLIC_API_URL}/investments/${investmentId}/payment-instructions`;
+      const targetUrl = `${process.env.EXPO_PUBLIC_API_URL}/investments/${investmentId}/payment-instructions?ts=${Date.now()}`;
       const fileUri = `${FileSystem.documentDirectory}BricketX_Payment_Instructions_${internalRef}.pdf`;
 
       const headers: Record<string, string> = {
@@ -161,6 +161,7 @@ export const FundingInstructionsModal: React.FC<Props> = ({ route, navigation })
         headers['Proxy-Authorization'] = `Basic ${basicAuth}`;
       }
 
+      await FileSystem.deleteAsync(fileUri, { idempotent: true }).catch(() => {});
       const res = await FileSystem.downloadAsync(targetUrl, fileUri, { headers });
       if (res.status === 200) {
         await openLocalPdfFile(res.uri, { title: `BricketX_Payment_Instructions_${internalRef}.pdf` });
@@ -224,7 +225,7 @@ export const FundingInstructionsModal: React.FC<Props> = ({ route, navigation })
       showFeedback({
         variant: 'error',
         title: 'Confirmation Failed',
-        message: err?.data?.message || 'Unable to log payment confirmation. Please try again.',
+        message: err?.status === 409 ? (err?.data?.message || 'Please view your funding instructions first before confirming a payment.') : (err?.data?.message || 'Unable to log payment confirmation. Please try again.'),
         primaryLabel: 'Close',
       });
     }
@@ -636,7 +637,7 @@ export const FundingInstructionsModal: React.FC<Props> = ({ route, navigation })
                 </View>
                 <View style={styles.flexText}>
                   <Text style={styles.transferStepKicker} numberOfLines={1}>
-                    FINAL STEP • CONFIRM TRANSFER
+                    FINAL STEP ï¿½ CONFIRM TRANSFER
                   </Text>
                   <Text style={styles.transferSentTitle} numberOfLines={2}>
                     Have You Sent the Wire?

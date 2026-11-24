@@ -1,4 +1,4 @@
-﻿import React, { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -108,7 +108,7 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
     return map;
   }, [investmentsListData]);
 
-  const investments = portfolio?.investments || [];
+  const investments = useMemo(() => (portfolio?.investments || []).filter((inv: any) => inv?.status !== 'cancelled'), [portfolio?.investments]);
   const hasActiveInvestments = investments.length > 0;
 
   const pendingInvestment = useMemo(() => {

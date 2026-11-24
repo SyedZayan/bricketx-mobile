@@ -1,9 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { KycStackParamList } from '../../navigation/types';
-import { useGetKycMeQuery } from '../../api/generated/investorApi';
+import { useGetKycMeQuery, useGetKycMeDocumentRequestsQuery } from '../../api/generated/investorApi';
 import {
   individualDocumentSlots,
   businessDocumentGroups,
@@ -18,6 +18,9 @@ type Props = NativeStackScreenProps<KycStackParamList, 'IdentityDocs'>;
 
 export const IdentityDocsScreen: React.FC<Props> = ({ navigation }) => {
   const { data: kycData, isLoading, refetch } = useGetKycMeQuery(undefined);
+  const { data: docRequestsData, refetch: refetchDocRequests } = useGetKycMeDocumentRequestsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
 
   if (isLoading || !kycData) {
     return (
@@ -36,6 +39,7 @@ export const IdentityDocsScreen: React.FC<Props> = ({ navigation }) => {
       )
     : [{ title: 'Your Documents', slots: individualDocumentSlots() }];
 
+  const openRequests = (docRequestsData?.requests ?? []).filter((r: any) => !r?.status || String(r.status).toLowerCase() === 'open' || String(r.status).toLowerCase() === 'pending');
   const allSlots = groups.flatMap((g) => g.slots);
   const uploadedCount = allSlots.filter((slot) => {
     const doc = findSlotDocument(slot, kycData.documents);

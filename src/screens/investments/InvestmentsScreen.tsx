@@ -369,12 +369,13 @@ export const InvestmentsScreen = () => {
       activePositions,
       inFlightPositions,
       actionRequiredPositions,
-      totalPositions: investments.length,
+      totalPositions: investments.filter((i) => i.status !== 'cancelled').length,
     };
   }, [investments]);
 
   const filteredInvestments = useMemo(() => {
     return investments.filter((item) => {
+      if (item.status === 'cancelled') return false;
       const meta = getResolvedStatusMeta(item);
 
       if (activeTab === 'ACTIVE' && item.status !== 'active') return false;
@@ -386,7 +387,7 @@ export const InvestmentsScreen = () => {
       }
       if (
         activeTab === 'CLOSED' &&
-        !['matured', 'cancelled', 'funding_reversed', 'withdrawn'].includes(item.status)
+        !['matured', 'funding_reversed', 'withdrawn'].includes(item.status)
       ) {
         return false;
       }
