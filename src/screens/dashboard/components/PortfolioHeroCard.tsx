@@ -51,7 +51,11 @@ export const PortfolioHeroCard: React.FC<Props> = ({
     activeNum > 0 && deploymentPct === 0
       ? '<1% deployed'
       : `${deploymentPct}% deployed`;
-  const firstName = fullName?.trim().split(/\s+/)[0] || 'Investor';
+  const nameParts = fullName?.trim().split(/\s+/).filter(Boolean) || [];
+  const firstName =
+    nameParts.length >= 3
+      ? `${nameParts[0][0].toUpperCase()}. ${nameParts[1]}`
+      : nameParts[0] || 'Investor';
   const mask = (formatted: string) => (hideBalances ? '••••••' : formatted);
 
   const handleCopyRfid = async () => {
