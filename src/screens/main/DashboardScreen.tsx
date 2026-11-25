@@ -86,7 +86,7 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
 
   const formatCurrency = (amount: string | number | null | undefined) => {
     if (!amount) return '$0';
-    const num = typeof amount === 'string' ? parseFloat(amount.replace(/,/g, '')) : amount;
+    const num = typeof amount === 'string' ? parseFloat(amount.replace(/[^0-9.-]/g, '')) : amount;
     return isNaN(num)
       ? '$0'
       : `$${num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -209,9 +209,28 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
           investorRfid={authData?.investorRfid}
           isKycApproved={isKycApproved}
           isKycInReview={isKycInReview}
-          totalCommitted={portfolio?.totals?.committed}
+          totalCommitted={(() => {
+            const rawCommitted = parseFloat(String(portfolio?.totals?.committed ?? '0').replace(/[^0-9.-]/g, '')) || 0;
+            const rawActive = parseFloat(String(portfolio?.totals?.activeCapital ?? '0').replace(/[^0-9.-]/g, '')) || 0;
+            const rawTotalInvested = parseFloat(String(portfolio?.totals?.totalInvested ?? '0').replace(/[^0-9.-]/g, '')) || 0;
+            const sumNonCancelled = investments.reduce(
+              (acc: number, inv: any) =>
+                acc + (parseFloat(String(inv?.principal ?? '0').replace(/[^0-9.-]/g, '')) || 0),
+              0
+            );
+            return Math.max(rawCommitted, rawActive, rawTotalInvested, sumNonCancelled);
+          })()}
           activeCapital={portfolio?.totals?.activeCapital}
-          paidToDate={portfolio?.totals?.paidToDate}
+          paidToDate={(() => {
+            const rawPaid = parseFloat(String(portfolio?.totals?.paidToDate ?? '0').replace(/[^0-9.-]/g, '')) || 0;
+            if (rawPaid > 0) return rawPaid;
+            const sumPaid = investments.reduce(
+              (acc: number, inv: any) =>
+                acc + (parseFloat(String(inv?.paid?.total ?? '0').replace(/[^0-9.-]/g, '')) || 0),
+              0
+            );
+            return sumPaid > 0 ? sumPaid : (portfolio?.totals?.paidToDate ?? 0);
+          })()}
           nextPayoutText={nextPayoutText}
           nextPayoutSub={nextPayoutSub}
           formatCurrency={formatCurrency}

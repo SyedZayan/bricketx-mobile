@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,9 +19,11 @@ interface Props {
 }
 
 const toNumber = (val: string | number | null | undefined): number => {
-  if (!val) return 0;
-  const num = typeof val === 'string' ? parseFloat(val.replace(/,/g, '')) : val;
-  return isNaN(num) ? 0 : num;
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+  const cleaned = String(val).replace(/[^0-9.-]/g, '');
+  const num = parseFloat(cleaned);
+  return Number.isFinite(num) ? num : 0;
 };
 
 export const PortfolioHeroCard: React.FC<Props> = ({
@@ -42,9 +44,13 @@ export const PortfolioHeroCard: React.FC<Props> = ({
 
   const committedNum = toNumber(totalCommitted);
   const activeNum = toNumber(activeCapital);
+  const rawPct = committedNum > 0 ? (activeNum / committedNum) * 100 : 0;
   const deploymentPct =
-    committedNum > 0 ? Math.min(Math.round((activeNum / committedNum) * 100), 100) : 0;
-
+    committedNum > 0 ? Math.min(Math.round(rawPct), 100) : 0;
+  const deploymentLabel =
+    activeNum > 0 && deploymentPct === 0
+      ? '<1% deployed'
+      : `${deploymentPct}% deployed`;
   const firstName = fullName?.trim().split(/\s+/)[0] || 'Investor';
   const mask = (formatted: string) => (hideBalances ? '••••••' : formatted);
 
@@ -145,7 +151,7 @@ export const PortfolioHeroCard: React.FC<Props> = ({
           </View>
           <View style={styles.progressMeta}>
             <Text style={styles.progressPct} numberOfLines={1}>
-              {deploymentPct}% deployed
+              {deploymentLabel}
             </Text>
             <Text style={styles.progressSub} numberOfLines={1}>
               {mask(formatCurrency(totalCommitted))} total committed

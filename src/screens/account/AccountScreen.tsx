@@ -62,11 +62,16 @@ export const AccountScreen: React.FC<NativeStackScreenProps<any>> = ({ navigatio
   const { data: notifPrefs } = useGetNotificationsPreferencesQuery();
 
   const awaitingInvestorCount = ticketSummary?.awaitingInvestor ?? 0;
-  const activeHoldingsCount = Array.isArray((investmentsData as any)?.items)
-    ? (investmentsData as any).items.length
-    : Array.isArray(investmentsData)
-    ? (investmentsData as any).length
-    : 0;
+  const activeHoldingsCount = (() => {
+    const rawList = Array.isArray((investmentsData as any)?.investments)
+      ? (investmentsData as any).investments
+      : Array.isArray((investmentsData as any)?.items)
+      ? (investmentsData as any).items
+      : Array.isArray(investmentsData)
+      ? (investmentsData as any)
+      : [];
+    return rawList.filter((inv: any) => inv?.status !== 'cancelled').length;
+  })();
 
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [biometricTypeName, setBiometricTypeName] = useState('Face ID / Fingerprint');
