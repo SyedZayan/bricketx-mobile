@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
+import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { baseApi } from '../../../api/baseApi';
@@ -177,8 +178,11 @@ export const InvestmentDetailScreen: React.FC<Props> = ({ route, navigation }) =
               `Reference: ${inv.internalRef || id}`,
               'Status updated to Transfer in Review',
             ],
-            primaryLabel: 'Done',
-            onPrimary: closeWireModal,
+            primaryLabel: 'Go to Dashboard',
+            onPrimary: () => {
+              closeWireModal();
+              navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'MainRoot', params: { screen: 'Dashboard' } }] }));
+            },
           });
         } catch (err: any) {
           setWireModal({

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   View,
@@ -20,7 +20,6 @@ import {
 } from '../../api/generated/investorApi';
 import {
   formatNotificationTime,
-  formatShortRecordRef,
   getNotificationVisualMeta,
   loadClearedNotificationIds,
   navigateFromNotificationLink,
@@ -150,7 +149,7 @@ export const NotificationsSheet: React.FC<SheetProps> = ({
                 </View>
               )}
             </View>
-            <Text style={styles.sheetSub} numberOfLines={1}>
+            <Text style={styles.sheetSub}>
               Portfolio, compliance &amp; statement updates
             </Text>
           </View>
@@ -214,7 +213,6 @@ export const NotificationsSheet: React.FC<SheetProps> = ({
             contentContainerStyle={styles.listContent}
             renderItem={({ item }) => {
               const meta = getNotificationVisualMeta(item.type, item.link?.type, item.title);
-              const refCode = formatShortRecordRef(item.link);
               return (
                 <TouchableOpacity
                   style={[styles.itemRow, !item.read && styles.itemUnread]}
@@ -234,11 +232,7 @@ export const NotificationsSheet: React.FC<SheetProps> = ({
                         >
                           {item.title}
                         </Text>
-                        {refCode && (
-                          <View style={styles.refPill}>
-                            <Text style={styles.refPillText}>{refCode}</Text>
-                          </View>
-                        )}
+
                       </View>
                       <View style={styles.timeAndDot}>
                         <Text style={styles.timeText}>
@@ -248,7 +242,7 @@ export const NotificationsSheet: React.FC<SheetProps> = ({
                       </View>
                     </View>
 
-                    <Text style={styles.itemText} numberOfLines={2}>
+                    <Text style={styles.itemText} numberOfLines={3}>
                       {item.text}
                     </Text>
                   </View>
@@ -352,8 +346,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 9,
+    paddingVertical: 5.5,
+    paddingHorizontal: 8,
     borderRadius: 9,
     backgroundColor: '#FAF5EE',
     borderWidth: 1,
@@ -368,8 +362,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 9,
+    paddingVertical: 5.5,
+    paddingHorizontal: 8,
     borderRadius: 9,
     backgroundColor: '#F5F4F0',
     borderWidth: 1,

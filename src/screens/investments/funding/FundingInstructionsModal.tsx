@@ -14,6 +14,7 @@ import { openLocalPdfFile, openCachedDocument } from '../../../utils/documentCac
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
+import { CommonActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/types';
 import { baseApi } from '../../../api/baseApi';
@@ -215,10 +216,10 @@ export const FundingInstructionsModal: React.FC<Props> = ({ route, navigation })
           ...(formattedAmount ? [`Amount: ${formattedAmount} USD`] : []),
           `Reference: ${reference}`,
         ],
-        primaryLabel: 'Back to Portfolio',
+        primaryLabel: 'Go to Dashboard',
         onPrimary: () => {
           closeFeedback();
-          navigation.goBack();
+          navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'MainRoot', params: { screen: 'Dashboard' } }] }));
         },
       });
     } catch (err: any) {
